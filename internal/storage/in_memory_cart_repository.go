@@ -1,8 +1,9 @@
 package storage
 
 import (
-	cart "cart/internal"
 	"context"
+
+	cart "github.com/alvarocabanas/cart/internal"
 )
 
 // In this repository there should be a map of Carts, but to simplify it for this example, I only add one cart

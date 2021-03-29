@@ -1,4 +1,4 @@
-module cart
+module github.com/alvarocabanas/cart
 
 go 1.14
 

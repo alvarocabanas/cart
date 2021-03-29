@@ -2,9 +2,6 @@ package bootstrap_test
 
 import (
 	"bytes"
-	"cart/cmd/bootstrap"
-	"cart/internal/creator"
-	"cart/internal/getter"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alvarocabanas/cart/cmd/bootstrap"
+	"github.com/alvarocabanas/cart/internal/creator"
+	"github.com/alvarocabanas/cart/internal/getter"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,14 +3,14 @@
 package bootstrap
 
 import (
-	cart "cart/internal"
-	"cart/internal/creator"
-	"cart/internal/getter"
-	"cart/internal/io/rest"
-	"cart/internal/storage"
 	"context"
 	"net/http"
 
+	cart "github.com/alvarocabanas/cart/internal"
+	"github.com/alvarocabanas/cart/internal/creator"
+	"github.com/alvarocabanas/cart/internal/getter"
+	"github.com/alvarocabanas/cart/internal/io/rest"
+	"github.com/alvarocabanas/cart/internal/storage"
 	"github.com/google/wire"
 )
 

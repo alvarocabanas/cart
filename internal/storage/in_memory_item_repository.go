@@ -1,8 +1,9 @@
 package storage
 
 import (
-	cart "cart/internal"
 	"context"
+
+	cart "github.com/alvarocabanas/cart/internal"
 )
 
 type InMemoryItemRepository struct {

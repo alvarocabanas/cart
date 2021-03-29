@@ -1,7 +1,7 @@
 package cart_test
 
 import (
-	cart "cart/internal"
+	cart "github.com/alvarocabanas/cart/internal"
 	"testing"
 
 	"github.com/stretchr/testify/require"

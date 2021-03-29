@@ -1,12 +1,13 @@
 package rest
 
 import (
-	cart "cart/internal"
-	"cart/internal/creator"
-	"cart/internal/getter"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+
+	cart "github.com/alvarocabanas/cart/internal"
+	"github.com/alvarocabanas/cart/internal/creator"
+	"github.com/alvarocabanas/cart/internal/getter"
 )
 
 type ErrorResponse struct {

@@ -1,10 +1,10 @@
 package storage
 
 import (
-	cart "cart/internal"
 	"context"
 	"testing"
 
+	cart "github.com/alvarocabanas/cart/internal"
 	"github.com/stretchr/testify/require"
 )
 

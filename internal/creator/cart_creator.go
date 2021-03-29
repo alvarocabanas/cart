@@ -1,8 +1,9 @@
 package creator
 
 import (
-	cart "cart/internal"
 	"context"
+
+	cart "github.com/alvarocabanas/cart/internal"
 )
 
 type AddItemDTO struct {

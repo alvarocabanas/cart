@@ -1,8 +1,9 @@
 package getter
 
 import (
-	cart "cart/internal"
 	"context"
+
+	cart "github.com/alvarocabanas/cart/internal"
 )
 
 // This in future iterations could go in a transformer to isolate the responsability

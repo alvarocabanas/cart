@@ -1,13 +1,13 @@
 package main
 
 import (
-	"cart/cmd/bootstrap"
 	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/alvarocabanas/cart/cmd/bootstrap"
 	"golang.org/x/sync/errgroup"
 )
 
