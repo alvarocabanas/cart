@@ -1,3 +1,26 @@
+prom:
+  image: prom/prometheus:v2.26.0-rc.0
+  volumes:
+    - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  command: "--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus"
+  ports:
+    - 9090:9090
+
+jaeger:
+  image: jaegertracing/all-in-one:1.22.0
+  ports:
+    - "5775:5775/udp"
+    - "6831:6831/udp"
+    - "6832:6832/udp"
+    - "5778:5778"
+    - "14267"
+    - "14268:14268"
+    - "14269"
+    - "16686:16686"
+    - "16687"
+    - "9411:9411"
+  restart: on-failure
+
 cart:
   container_name: cart
   build: .
