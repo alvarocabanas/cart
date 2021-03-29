@@ -1,0 +1,8 @@
+cart:
+  container_name: cart
+  build: .
+  environment:
+    - CGO_ENABLED=0
+    - GOPROXY=https://proxy.golang.org,direct
+  ports:
+    - 8888:8888
