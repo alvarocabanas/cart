@@ -1,4 +1,4 @@
-package observability
+package metrics
 
 import (
 	"context"
@@ -10,17 +10,16 @@ import (
 
 const AddItemLatencyMeasureName = "cart_add_item_latency"
 
-//go:generate moq -out metrics_tracker_mock.go . MetricsTracker
-type MetricsTracker interface {
-	Track(start int64, measureName string)
+type Recorder interface {
+	Record(start int64, measureName string)
 }
 
-type OpenCensusMetricsTracker struct {
+type OpenCensusRecorder struct {
 	latencyMeasures []*stats.Float64Measure
 	views           []*view.View
 }
 
-func NewOpenCensusMetricsTracker() (OpenCensusMetricsTracker, error) {
+func NewOpenCensusRecorder() (OpenCensusRecorder, error) {
 	addItemLatencyS := stats.Float64(AddItemLatencyMeasureName, "The latency in seconds for the complete validation process", "s")
 
 	views := []*view.View{
@@ -39,17 +38,17 @@ func NewOpenCensusMetricsTracker() (OpenCensusMetricsTracker, error) {
 	}
 
 	if err := view.Register(views...); err != nil {
-		return OpenCensusMetricsTracker{}, err
+		return OpenCensusRecorder{}, err
 	}
 
 	measures := []*stats.Float64Measure{addItemLatencyS}
-	return OpenCensusMetricsTracker{
+	return OpenCensusRecorder{
 		latencyMeasures: measures,
 		views:           views,
 	}, nil
 }
 
-func (t OpenCensusMetricsTracker) Track(start int64, measureName string) {
+func (t OpenCensusRecorder) Record(start int64, measureName string) {
 	s := time.Unix(start, 0)
 
 	totalTime := time.Since(s)
@@ -62,7 +61,7 @@ func (t OpenCensusMetricsTracker) Track(start int64, measureName string) {
 	go stats.Record(context.Background(), measure.M(totalTime.Seconds()))
 }
 
-func (t OpenCensusMetricsTracker) measureByName(measurementName string) *stats.Float64Measure {
+func (t OpenCensusRecorder) measureByName(measurementName string) *stats.Float64Measure {
 	for _, measure := range t.latencyMeasures {
 		if measure.Name() == measurementName {
 			return measure

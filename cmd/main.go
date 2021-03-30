@@ -19,7 +19,6 @@ func main() {
 	g, gctx := errgroup.WithContext(ctx)
 
 	cfg := bootstrap.Config{ServerPort: serverPort}
-
 	server, err := bootstrap.InitializeServer(gctx, cfg)
 	if err != nil {
 		panic(err)

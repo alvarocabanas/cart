@@ -11,7 +11,7 @@ import (
 	"github.com/alvarocabanas/cart/internal/creator"
 	"github.com/alvarocabanas/cart/internal/getter"
 	"github.com/alvarocabanas/cart/internal/io/rest"
-	"github.com/alvarocabanas/cart/internal/observability"
+	"github.com/alvarocabanas/cart/internal/metrics"
 	"github.com/alvarocabanas/cart/internal/storage"
 	"github.com/google/wire"
 	"go.opencensus.io/stats/view"
@@ -26,11 +26,11 @@ func InitializeServer(ctx context.Context, cfg Config) (*http.Server, error) {
 	inMemoryItemRepository := storage.NewInMemoryItemRepository()
 	cartCreator := creator.NewCartCreator(inMemoryCartRepository, inMemoryItemRepository)
 	cartGetter := getter.NewCartGetter(inMemoryCartRepository)
-	openCensusMetricsTracker, err := observability.NewOpenCensusMetricsTracker()
+	openCensusRecorder, err := metrics.NewOpenCensusRecorder()
 	if err != nil {
 		return nil, err
 	}
-	cartHandler := rest.NewCartHandler(cartCreator, cartGetter, openCensusMetricsTracker)
+	cartHandler := rest.NewCartHandler(cartCreator, cartGetter, openCensusRecorder)
 	metricsHandler, err := initializeMetricsExporter(cfg)
 	if err != nil {
 		return nil, err
