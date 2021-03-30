@@ -1,4 +1,4 @@
-REST API Shopping Cart in GO
+REST API Shopping Cart in GO with Tracing and Metrics
 ---
 
 ### Project Features
@@ -16,6 +16,8 @@ REST API Shopping Cart in GO
 * The application is Dockerized and can be launched from a makefile
 
 * The Server is launched in the port :8888
+* Metrics are pulled by Prometheus and can be seen in http://localhost:9090
+* Traces are retrieved by Jaeger and can be seen in http://localhost:16686
 
 
 ### How to use the application in your local machine
