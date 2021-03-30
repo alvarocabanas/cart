@@ -9,8 +9,8 @@ scrape_configs:
     # metrics_path defaults to '/metrics'
     # scheme defaults to 'http'.
     static_configs:
-      - targets: ['localhost:9090']
-#  - job_name: "cart"
-#    scrape_interval: "5s"
-#    static_configs:
-#      - targets: ['hello-1:8080']
+      - targets: ['prom:9090']
+  - job_name: "cart"
+    scrape_interval: "5s"
+    static_configs:
+      - targets: ['cart:8888']

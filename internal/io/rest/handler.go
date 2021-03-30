@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"time"
+
+	"github.com/alvarocabanas/cart/internal/observability"
 
 	cart "github.com/alvarocabanas/cart/internal"
 	"github.com/alvarocabanas/cart/internal/creator"
@@ -16,21 +19,28 @@ type ErrorResponse struct {
 }
 
 type CartHandler struct {
-	cartCreator creator.CartCreator
-	cartGetter  getter.CartGetter
+	cartCreator    creator.CartCreator
+	cartGetter     getter.CartGetter
+	metricsTracker observability.MetricsTracker
 }
 
 // NewCartHandler creates the handler/controller for the api, in future iterations there could be one handler per
 // application service
-func NewCartHandler(cartCreator creator.CartCreator, cartGetter getter.CartGetter) CartHandler {
+func NewCartHandler(
+	cartCreator creator.CartCreator,
+	cartGetter getter.CartGetter,
+	metricsTracker observability.MetricsTracker,
+) CartHandler {
 	return CartHandler{
-		cartCreator: cartCreator,
-		cartGetter:  cartGetter,
+		cartCreator:    cartCreator,
+		cartGetter:     cartGetter,
+		metricsTracker: metricsTracker,
 	}
 }
 
 func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	timeStart := time.Now().Unix()
 
 	var body creator.AddItemDTO
 
@@ -60,6 +70,7 @@ func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeResponse(w, http.StatusCreated, nil)
+	h.metricsTracker.Track(timeStart, observability.AddItemLatencyMeasureName)
 }
 
 func (h *CartHandler) GetCartStatus(w http.ResponseWriter, r *http.Request) {

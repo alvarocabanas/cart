@@ -6,12 +6,15 @@ import (
 	"context"
 	"net/http"
 
+	"contrib.go.opencensus.io/exporter/prometheus"
 	cart "github.com/alvarocabanas/cart/internal"
 	"github.com/alvarocabanas/cart/internal/creator"
 	"github.com/alvarocabanas/cart/internal/getter"
 	"github.com/alvarocabanas/cart/internal/io/rest"
+	"github.com/alvarocabanas/cart/internal/observability"
 	"github.com/alvarocabanas/cart/internal/storage"
 	"github.com/google/wire"
+	"go.opencensus.io/stats/view"
 )
 
 // In future iterations the config will come from Environment variables
@@ -40,6 +43,9 @@ func InitializeServer(ctx context.Context, cfg Config) (*http.Server, error) {
 		wire.Bind(new(cart.CartRepository), new(storage.InMemoryCartRepository)),
 		wire.Bind(new(cart.ItemRepository), new(storage.InMemoryItemRepository)),
 		handlerSet,
+		initializeMetricsExporter,
+		observability.NewOpenCensusMetricsTracker,
+		wire.Bind(new(observability.MetricsTracker), new(observability.OpenCensusMetricsTracker)),
 		getServerAddress,
 		rest.NewServer,
 	)
@@ -48,4 +54,14 @@ func InitializeServer(ctx context.Context, cfg Config) (*http.Server, error) {
 
 func getServerAddress(cfg Config) rest.Address {
 	return rest.Address(cfg.ServerPort)
+}
+
+func initializeMetricsExporter(cfg Config) (rest.MetricsHandler, error) {
+	exporter, err := prometheus.NewExporter(prometheus.Options{})
+	if err != nil {
+		return nil, err
+	}
+	view.RegisterExporter(exporter)
+
+	return exporter, nil
 }

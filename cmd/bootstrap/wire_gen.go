@@ -7,11 +7,14 @@ package bootstrap
 
 import (
 	"context"
+	"contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/alvarocabanas/cart/internal/creator"
 	"github.com/alvarocabanas/cart/internal/getter"
 	"github.com/alvarocabanas/cart/internal/io/rest"
+	"github.com/alvarocabanas/cart/internal/observability"
 	"github.com/alvarocabanas/cart/internal/storage"
 	"github.com/google/wire"
+	"go.opencensus.io/stats/view"
 	"net/http"
 )
 
@@ -23,8 +26,16 @@ func InitializeServer(ctx context.Context, cfg Config) (*http.Server, error) {
 	inMemoryItemRepository := storage.NewInMemoryItemRepository()
 	cartCreator := creator.NewCartCreator(inMemoryCartRepository, inMemoryItemRepository)
 	cartGetter := getter.NewCartGetter(inMemoryCartRepository)
-	cartHandler := rest.NewCartHandler(cartCreator, cartGetter)
-	server := rest.NewServer(address, cartHandler)
+	openCensusMetricsTracker, err := observability.NewOpenCensusMetricsTracker()
+	if err != nil {
+		return nil, err
+	}
+	cartHandler := rest.NewCartHandler(cartCreator, cartGetter, openCensusMetricsTracker)
+	metricsHandler, err := initializeMetricsExporter(cfg)
+	if err != nil {
+		return nil, err
+	}
+	server := rest.NewServer(address, cartHandler, metricsHandler)
 	return server, nil
 }
 
@@ -43,4 +54,14 @@ var handlerSet = wire.NewSet(rest.NewCartHandler)
 
 func getServerAddress(cfg Config) rest.Address {
 	return rest.Address(cfg.ServerPort)
+}
+
+func initializeMetricsExporter(cfg Config) (rest.MetricsHandler, error) {
+	exporter, err := prometheus.NewExporter(prometheus.Options{})
+	if err != nil {
+		return nil, err
+	}
+	view.RegisterExporter(exporter)
+
+	return exporter, nil
 }

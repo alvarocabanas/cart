@@ -12,7 +12,9 @@ type (
 	PrefixPath string
 )
 
-func NewServer(address Address, handler CartHandler) *http.Server {
+type MetricsHandler http.Handler
+
+func NewServer(address Address, handler CartHandler, metricsHandler MetricsHandler) *http.Server {
 
 	return &http.Server{
 		Addr: string(address),
@@ -21,12 +23,13 @@ func NewServer(address Address, handler CartHandler) *http.Server {
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
 
-		Handler: NewRouter(handler),
+		Handler: NewRouter(handler, metricsHandler),
 	}
 }
 
-func NewRouter(h CartHandler) *mux.Router {
+func NewRouter(h CartHandler, metricsHandler http.Handler) *mux.Router {
 	r := mux.NewRouter()
+	r.Handle("/metrics", metricsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/", h.AddItem).Methods(http.MethodPost)
 	r.HandleFunc("/", h.GetCartStatus).Methods(http.MethodGet)
 
