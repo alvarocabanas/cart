@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 
+	"go.opencensus.io/trace"
+
 	cart "github.com/alvarocabanas/cart/internal"
 )
 
@@ -17,7 +19,9 @@ func NewInMemoryCartRepository() InMemoryCartRepository {
 	}
 }
 
-func (r InMemoryCartRepository) AddItem(_ context.Context, item cart.Item, quantity int) error {
+func (r InMemoryCartRepository) AddItem(ctx context.Context, item cart.Item, quantity int) error {
+	_, span := trace.StartSpan(ctx, "repository_add_item")
+	defer span.End()
 	return r.cart.AddItem(item, quantity)
 }
 

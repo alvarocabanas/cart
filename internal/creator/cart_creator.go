@@ -3,6 +3,8 @@ package creator
 import (
 	"context"
 
+	"go.opencensus.io/trace"
+
 	cart "github.com/alvarocabanas/cart/internal"
 )
 
@@ -27,10 +29,13 @@ func NewCartCreator(
 }
 
 func (c CartCreator) AddItem(ctx context.Context, dto AddItemDTO) error {
-	item, err := c.itemRepository.Get(ctx, dto.ItemID)
+	stxt, span := trace.StartSpan(ctx, "cart_creator_add_item")
+	defer span.End()
+
+	item, err := c.itemRepository.Get(stxt, dto.ItemID)
 	if err != nil {
 		return err
 	}
 
-	return c.cartRepository.AddItem(ctx, item, dto.Quantity)
+	return c.cartRepository.AddItem(stxt, item, dto.Quantity)
 }

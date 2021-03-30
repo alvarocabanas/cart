@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 
+	"contrib.go.opencensus.io/exporter/jaeger"
 	"contrib.go.opencensus.io/exporter/prometheus"
 	cart "github.com/alvarocabanas/cart/internal"
 	"github.com/alvarocabanas/cart/internal/creator"
@@ -15,7 +16,11 @@ import (
 	"github.com/alvarocabanas/cart/internal/storage"
 	"github.com/google/wire"
 	"go.opencensus.io/stats/view"
+	"go.opencensus.io/trace"
 )
+
+const serviceName = "cart"
+const jaegerTracingUrl = "http://jaeger:14268/api/traces"
 
 // In future iterations the config will come from Environment variables
 type Config struct {
@@ -43,7 +48,7 @@ func InitializeServer(ctx context.Context, cfg Config) (*http.Server, error) {
 		wire.Bind(new(cart.CartRepository), new(storage.InMemoryCartRepository)),
 		wire.Bind(new(cart.ItemRepository), new(storage.InMemoryItemRepository)),
 		handlerSet,
-		initializeMetricsExporter,
+		initMetricsExporter,
 		metrics.NewOpenCensusRecorder,
 		wire.Bind(new(metrics.Recorder), new(metrics.OpenCensusRecorder)),
 		getServerAddress,
@@ -56,7 +61,7 @@ func getServerAddress(cfg Config) rest.Address {
 	return rest.Address(cfg.ServerPort)
 }
 
-func initializeMetricsExporter(cfg Config) (rest.MetricsHandler, error) {
+func initMetricsExporter(cfg Config) (rest.MetricsHandler, error) {
 	exporter, err := prometheus.NewExporter(prometheus.Options{})
 	if err != nil {
 		return nil, err
@@ -64,4 +69,21 @@ func initializeMetricsExporter(cfg Config) (rest.MetricsHandler, error) {
 	view.RegisterExporter(exporter)
 
 	return exporter, nil
+}
+
+func InitTraceExporter() error {
+	exporter, err := jaeger.NewExporter(jaeger.Options{
+		CollectorEndpoint: jaegerTracingUrl,
+		Process: jaeger.Process{
+			ServiceName: serviceName,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	defer exporter.Flush()
+
+	trace.RegisterExporter(exporter)
+	trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
+	return nil
 }

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"go.opencensus.io/trace"
+
 	"github.com/alvarocabanas/cart/internal/metrics"
 
 	cart "github.com/alvarocabanas/cart/internal"
@@ -39,7 +41,11 @@ func NewCartHandler(
 }
 
 func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	ctx, span := trace.StartSpan(r.Context(), "add_item")
+	defer func() {
+		span.End()
+		_ = r.Body.Close()
+	}()
 	timeStart := time.Now().Unix()
 
 	var body creator.AddItemDTO
@@ -56,7 +62,7 @@ func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.cartCreator.AddItem(r.Context(), body)
+	err = h.cartCreator.AddItem(ctx, body)
 	if err != nil {
 		switch err {
 		case cart.ErrItemNotFound:

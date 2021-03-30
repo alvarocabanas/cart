@@ -3,6 +3,7 @@ module github.com/alvarocabanas/cart
 go 1.14
 
 require (
+	contrib.go.opencensus.io/exporter/jaeger v0.2.1
 	contrib.go.opencensus.io/exporter/prometheus v0.3.0
 	github.com/google/wire v0.5.0
 	github.com/gorilla/mux v1.8.0

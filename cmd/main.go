@@ -18,6 +18,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	g, gctx := errgroup.WithContext(ctx)
 
+	err := bootstrap.InitTraceExporter()
+	if err != nil {
+		panic(err)
+	}
+
 	cfg := bootstrap.Config{ServerPort: serverPort}
 	server, err := bootstrap.InitializeServer(gctx, cfg)
 	if err != nil {
