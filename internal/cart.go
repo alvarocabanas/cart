@@ -1,6 +1,12 @@
 package cart
 
-import "errors"
+import (
+	"context"
+	"errors"
+	"time"
+
+	"go.opencensus.io/trace"
+)
 
 var ErrWrongAddItemQuantity = errors.New("item quantity should be positive on addition")
 
@@ -11,6 +17,7 @@ type Discount func(int) int
 type Cart struct {
 	lines     map[string]*Line
 	discounts []Discount
+	events    EventList
 }
 
 // New Creates a new Cart with a map of Lines
@@ -24,7 +31,10 @@ func New(discounts ...Discount) Cart {
 }
 
 // Add Item adds items to a New cart Line, RemoveItem is not implemented
-func (c Cart) AddItem(item Item, quantity int) error {
+func (c Cart) AddItem(ctx context.Context, item Item, quantity int) error {
+	_, span := trace.StartSpan(ctx, "cart_add_item")
+	defer span.End()
+
 	if quantity < 1 {
 		return ErrWrongAddItemQuantity
 	}
@@ -35,12 +45,26 @@ func (c Cart) AddItem(item Item, quantity int) error {
 	}
 
 	c.lines[item.UUID()] = NewLine(item, quantity)
+
+	c.events.Record(
+		&ItemAddedEvent{
+			ItemId:     item.UUID(),
+			Quantity:   int32(quantity),
+			Type:       "",
+			OccurredAt: time.Now().Format(time.RFC3339),
+		},
+	)
 	return nil
 }
 
 // Lines returns all the Lines in the cart
 func (c Cart) Lines() map[string]*Line {
 	return c.lines
+}
+
+// Events returns all events to be dispatched
+func (c Cart) Events() EventList {
+	return c.events
 }
 
 // CalculateTotalPrice calculates the total of the cart, applying discounts to the lines if applicable

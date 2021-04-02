@@ -9,18 +9,20 @@ import (
 )
 
 const AddItemLatencyMeasureName = "cart_add_item_latency"
+const AddItemEventHandled = "add_item_event_handled"
 
 type Recorder interface {
 	Record(start int64, measureName string)
 }
 
 type OpenCensusRecorder struct {
-	latencyMeasures []*stats.Float64Measure
-	views           []*view.View
+	measures []*stats.Float64Measure
+	views    []*view.View
 }
 
 func NewOpenCensusRecorder() (OpenCensusRecorder, error) {
-	addItemLatencyS := stats.Float64(AddItemLatencyMeasureName, "The latency in seconds for the complete validation process", "s")
+	addItemLatencyS := stats.Float64(AddItemLatencyMeasureName, "The latency in seconds for the complete validation process", stats.UnitSeconds)
+	addItemEventHandled := stats.Float64(AddItemLatencyMeasureName, "The latency in seconds for the complete validation process", stats.UnitDimensionless)
 
 	views := []*view.View{
 		{
@@ -35,16 +37,22 @@ func NewOpenCensusRecorder() (OpenCensusRecorder, error) {
 			Measure:     addItemLatencyS,
 			Aggregation: view.Count(),
 		},
+		{
+			Name:        "cart_consumer/counts",
+			Description: "Counts of items-added events handled",
+			Measure:     addItemEventHandled,
+			Aggregation: view.Count(),
+		},
 	}
 
 	if err := view.Register(views...); err != nil {
 		return OpenCensusRecorder{}, err
 	}
 
-	measures := []*stats.Float64Measure{addItemLatencyS}
+	measures := []*stats.Float64Measure{addItemLatencyS, addItemEventHandled}
 	return OpenCensusRecorder{
-		latencyMeasures: measures,
-		views:           views,
+		measures: measures,
+		views:    views,
 	}, nil
 }
 
@@ -62,7 +70,7 @@ func (t OpenCensusRecorder) Record(start int64, measureName string) {
 }
 
 func (t OpenCensusRecorder) measureByName(measurementName string) *stats.Float64Measure {
-	for _, measure := range t.latencyMeasures {
+	for _, measure := range t.measures {
 		if measure.Name() == measurementName {
 			return measure
 		}

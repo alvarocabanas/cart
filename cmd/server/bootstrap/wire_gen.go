@@ -12,6 +12,7 @@ import (
 	"github.com/alvarocabanas/cart/internal/creator"
 	"github.com/alvarocabanas/cart/internal/getter"
 	"github.com/alvarocabanas/cart/internal/io/rest"
+	"github.com/alvarocabanas/cart/internal/messaging"
 	"github.com/alvarocabanas/cart/internal/metrics"
 	"github.com/alvarocabanas/cart/internal/storage"
 	"github.com/google/wire"
@@ -26,7 +27,12 @@ func InitializeServer(ctx context.Context, cfg Config) (*http.Server, error) {
 	address := getServerAddress(cfg)
 	inMemoryCartRepository := storage.NewInMemoryCartRepository()
 	inMemoryItemRepository := storage.NewInMemoryItemRepository()
-	cartCreator := creator.NewCartCreator(inMemoryCartRepository, inMemoryItemRepository)
+	kafkaBrokers := getKafkaBrokers(cfg)
+	kafkaEventDispatcher, err := messaging.NewKafkaProducer(kafkaBrokers)
+	if err != nil {
+		return nil, err
+	}
+	cartCreator := creator.NewCartCreator(inMemoryCartRepository, inMemoryItemRepository, kafkaEventDispatcher)
 	cartGetter := getter.NewCartGetter(inMemoryCartRepository)
 	openCensusRecorder, err := metrics.NewOpenCensusRecorder()
 	if err != nil {
@@ -47,9 +53,12 @@ const serviceName = "cart"
 
 const jaegerTracingUrl = "http://jaeger:14268/api/traces"
 
-// In future iterations the config will come from Environment variables
 type Config struct {
 	ServerPort string `mapstructure:"server_port"`
+	Kafka      struct {
+		Brokers []string `mapstructure:"brokers"`
+	} `mapstructure:"kafka"`
+	JaegerTracingUrl string `mapstructure:"jaeger_tracing_url"`
 }
 
 var appSet = wire.NewSet(getter.NewCartGetter, creator.NewCartCreator)
@@ -57,6 +66,10 @@ var appSet = wire.NewSet(getter.NewCartGetter, creator.NewCartCreator)
 var storageSet = wire.NewSet(storage.NewInMemoryCartRepository, storage.NewInMemoryItemRepository)
 
 var handlerSet = wire.NewSet(rest.NewCartHandler)
+
+var messagingSet = wire.NewSet(
+	getKafkaBrokers, messaging.NewKafkaProducer,
+)
 
 func getServerAddress(cfg Config) rest.Address {
 	return rest.Address(cfg.ServerPort)
@@ -86,4 +99,8 @@ func InitTraceExporter() error {
 	trace.RegisterExporter(exporter)
 	trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
 	return nil
+}
+
+func getKafkaBrokers(cfg Config) messaging.KafkaBrokers {
+	return cfg.Kafka.Brokers
 }

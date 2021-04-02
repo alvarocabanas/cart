@@ -5,7 +5,7 @@ import "context"
 // This application only allows one cart, in future iterations, the cart should be first Created,
 // and the UUID of the cart should be passed to the other calls
 type CartRepository interface {
-	AddItem(ctx context.Context, item Item, quantity int) error
+	UpdateLine(ctx context.Context, line *Line) error
 	Get(ctx context.Context) Cart
 }
 

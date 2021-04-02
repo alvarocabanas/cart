@@ -12,6 +12,7 @@ import (
 	"github.com/alvarocabanas/cart/internal/creator"
 	"github.com/alvarocabanas/cart/internal/getter"
 	"github.com/alvarocabanas/cart/internal/io/rest"
+	"github.com/alvarocabanas/cart/internal/messaging"
 	"github.com/alvarocabanas/cart/internal/metrics"
 	"github.com/alvarocabanas/cart/internal/storage"
 	"github.com/google/wire"
@@ -22,9 +23,12 @@ import (
 const serviceName = "cart"
 const jaegerTracingUrl = "http://jaeger:14268/api/traces"
 
-// In future iterations the config will come from Environment variables
 type Config struct {
 	ServerPort string `mapstructure:"server_port"`
+	Kafka      struct {
+		Brokers []string `mapstructure:"brokers"`
+	} `mapstructure:"kafka"`
+	JaegerTracingUrl string `mapstructure:"jaeger_tracing_url"`
 }
 
 var appSet = wire.NewSet(
@@ -41,10 +45,17 @@ var handlerSet = wire.NewSet(
 	rest.NewCartHandler,
 )
 
+var messagingSet = wire.NewSet(
+	getKafkaBrokers,
+	messaging.NewKafkaProducer,
+)
+
 func InitializeServer(ctx context.Context, cfg Config) (*http.Server, error) {
 	wire.Build(
 		appSet,
 		storageSet,
+		messagingSet,
+		wire.Bind(new(cart.EventDispatcher), new(*messaging.KafkaEventDispatcher)),
 		wire.Bind(new(cart.CartRepository), new(storage.InMemoryCartRepository)),
 		wire.Bind(new(cart.ItemRepository), new(storage.InMemoryItemRepository)),
 		handlerSet,
@@ -86,4 +97,8 @@ func InitTraceExporter() error {
 	trace.RegisterExporter(exporter)
 	trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
 	return nil
+}
+
+func getKafkaBrokers(cfg Config) messaging.KafkaBrokers {
+	return cfg.Kafka.Brokers
 }

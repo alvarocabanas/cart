@@ -19,10 +19,12 @@ func NewInMemoryCartRepository() InMemoryCartRepository {
 	}
 }
 
-func (r InMemoryCartRepository) AddItem(ctx context.Context, item cart.Item, quantity int) error {
+func (r InMemoryCartRepository) UpdateLine(ctx context.Context, line *cart.Line) error {
 	_, span := trace.StartSpan(ctx, "repository_add_item")
 	defer span.End()
-	return r.cart.AddItem(item, quantity)
+
+	r.cart.Lines()[line.Item().UUID()] = line
+	return nil
 }
 
 func (r InMemoryCartRepository) Get(_ context.Context) cart.Cart {

@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/alvarocabanas/cart/cmd/bootstrap"
+	"github.com/alvarocabanas/cart/cmd/server/bootstrap"
 	"golang.org/x/sync/errgroup"
 )
 

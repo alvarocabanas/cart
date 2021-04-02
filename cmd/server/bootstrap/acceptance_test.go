@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alvarocabanas/cart/cmd/bootstrap"
+	"github.com/alvarocabanas/cart/cmd/consumer/bootstrap"
 	"github.com/alvarocabanas/cart/internal/creator"
 	"github.com/alvarocabanas/cart/internal/getter"
 	"github.com/stretchr/testify/require"
