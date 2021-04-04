@@ -29,7 +29,7 @@ services:
       - promnet
 
   kafka:
-    container_name: kafka-telemetry
+    container_name: kafka
     image: krisgeus/docker-kafka
     environment:
       - AUTO_CREATE_TOPICS=true
@@ -45,14 +45,32 @@ services:
     networks:
       - promnet
 
-  cart:
-    container_name: cart
-    build: .
+  cart-server:
+    container_name: cart-server
+    build: server/.
     environment:
       - CGO_ENABLED=0
       - GOPROXY=https://proxy.golang.org,direct
+      - JAEGER_TRACING_URL=http://jaeger:14268/api/traces
+      - SERVER_PORT=:8888
+      - KAFKA_BROKERS=kafka:9092
     ports:
       - 8888:8888
+    networks:
+      - promnet
+
+  cart-consumer:
+    container_name: cart-consumer
+    build: consumer/.
+    environment:
+      - CGO_ENABLED=0
+      - GOPROXY=https://proxy.golang.org,direct
+      - JAEGER_TRACING_URL=http://jaeger:14268/api/traces
+      - METRICS_SERVER_BIND_ADDR=:8889
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_GROUP_ID=cart.consumer
+    ports:
+      - 8889:8889
     networks:
       - promnet
 

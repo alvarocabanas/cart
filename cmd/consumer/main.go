@@ -3,32 +3,47 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/spf13/viper"
 
 	"github.com/alvarocabanas/cart/cmd/consumer/bootstrap"
 	"golang.org/x/sync/errgroup"
 )
 
+const serviceName = "cart-consumer"
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	g, gctx := errgroup.WithContext(ctx)
 
-	err := bootstrap.InitTraceExporter()
-	if err != nil {
-		panic(err)
+	var cfg bootstrap.Config
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file, %s", err)
 	}
+	err := viper.Unmarshal(&cfg)
+	if err != nil {
+		log.Fatalf("unable to decode into struct, %v", err)
+	}
+	err = bootstrap.InitTraceExporter(cfg)
+	if err != nil {
+		log.Fatalf("error initializing trace exporter, %v", err)
+	}
+	cfg.ServiceName = serviceName
 
-	cfg := bootstrap.Config{}
 	consumer, err := bootstrap.InitializeConsumer(ctx, cfg)
 	if err != nil {
-		panic(err)
+		log.Fatalf("error initializing consumer, %v", err)
 	}
 
 	metricServer, err := bootstrap.InitMetricsServer(cfg)
 	if err != nil {
-		panic(err)
+		log.Fatalf("error initializing metrics server, %v", err)
 	}
 
 	g.Go(func() error {

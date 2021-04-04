@@ -3,30 +3,43 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/spf13/viper"
 
 	"github.com/alvarocabanas/cart/cmd/server/bootstrap"
 	"golang.org/x/sync/errgroup"
 )
 
-// In future iterations of the application all the config will come from environment variables
-const serverPort = ":8888"
+const serviceName = "cart-server"
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	g, gctx := errgroup.WithContext(ctx)
 
-	err := bootstrap.InitTraceExporter()
+	var cfg bootstrap.Config
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file, %s", err)
+	}
+	err := viper.Unmarshal(&cfg)
 	if err != nil {
-		panic(err)
+		log.Fatalf("unable to decode into struct, %v", err)
+	}
+	cfg.ServiceName = serviceName
+
+	err = bootstrap.InitTraceExporter(cfg)
+	if err != nil {
+		log.Fatalf("error initializing trace exporter, %v", err)
 	}
 
-	cfg := bootstrap.Config{ServerPort: serverPort}
 	server, err := bootstrap.InitializeServer(gctx, cfg)
 	if err != nil {
-		panic(err)
+		log.Fatalf("error initializing server, %v", err)
 	}
 
 	g.Go(func() error {

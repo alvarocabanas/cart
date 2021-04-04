@@ -19,18 +19,16 @@ import (
 	"go.opencensus.io/trace"
 )
 
-const serviceName = "cart-consumer"
-const jaegerTracingUrl = "http://jaeger:14268/api/traces"
-
 type Config struct {
-	Kafka struct {
+	ServiceName string `mapstructure:"service_name"`
+	Kafka       struct {
 		Brokers []string `mapstructure:"brokers"`
 		GroupID string   `mapstructure:"group_id"`
 	} `mapstructure:"kafka"`
 	MetricsServer struct {
 		BindAddr string `mapstructure:"bind_addr"`
 	} `mapstructure:"metrics_server"`
-	JaegerTracingUrl string `mapstructure:"jaeger_tracing_url"`
+	JaegerTracingURL string `mapstructure:"jaeger_tracing_url"`
 }
 
 var messagingSet = wire.NewSet(
@@ -64,11 +62,11 @@ func InitMetricsServer(cfg Config) (*http.Server, error) {
 	return metricsServer, nil
 }
 
-func InitTraceExporter() error {
+func InitTraceExporter(cfg Config) error {
 	exporter, err := jaeger.NewExporter(jaeger.Options{
-		CollectorEndpoint: jaegerTracingUrl,
+		CollectorEndpoint: cfg.JaegerTracingURL,
 		Process: jaeger.Process{
-			ServiceName: serviceName,
+			ServiceName: cfg.ServiceName,
 		},
 	})
 	if err != nil {
