@@ -47,13 +47,19 @@ services:
 
   cart-server:
     container_name: cart-server
-    build: server/.
+    build:
+      context: .
+      dockerfile: cmd/server/Dockerfile
     environment:
       - CGO_ENABLED=0
       - GOPROXY=https://proxy.golang.org,direct
       - JAEGER_TRACING_URL=http://jaeger:14268/api/traces
       - SERVER_PORT=:8888
       - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      - kafka
+      - prom
+      - jaeger
     ports:
       - 8888:8888
     networks:
@@ -61,7 +67,9 @@ services:
 
   cart-consumer:
     container_name: cart-consumer
-    build: consumer/.
+    build:
+      context: .
+      dockerfile: cmd/consumer/Dockerfile
     environment:
       - CGO_ENABLED=0
       - GOPROXY=https://proxy.golang.org,direct
@@ -69,8 +77,25 @@ services:
       - METRICS_SERVER_BIND_ADDR=:8889
       - KAFKA_BROKERS=kafka:9092
       - KAFKA_GROUP_ID=cart.consumer
+    depends_on:
+      - kafka
+      - prom
+      - jaeger
     ports:
       - 8889:8889
+    networks:
+      - promnet
+
+  start_dependencies:
+    image: dadarek/wait-for-dependencies
+    environment:
+      - SLEEP_LENGTH=2
+      - TIMEOUT_LENGTH=120
+    depends_on:
+      - kafka
+      - prom
+      - jaeger
+    command: kafka:9092 prom:9090 jaeger:14268
     networks:
       - promnet
 

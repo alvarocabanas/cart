@@ -6,7 +6,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+
+	"github.com/octago/sflags"
+	"github.com/octago/sflags/gen/gpflag"
+	"github.com/spf13/pflag"
 
 	"github.com/spf13/viper"
 
@@ -20,19 +25,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	g, gctx := errgroup.WithContext(ctx)
 
-	var cfg bootstrap.Config
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file, %s", err)
-	}
-	err := viper.Unmarshal(&cfg)
-	if err != nil {
-		log.Fatalf("unable to decode into struct, %v", err)
-	}
-	cfg.ServiceName = serviceName
+	cfg := parseConfig()
 
-	err = bootstrap.InitTraceExporter(cfg)
+	err := bootstrap.InitTraceExporter(cfg)
 	if err != nil {
 		log.Fatalf("error initializing trace exporter, %v", err)
 	}
@@ -73,4 +68,27 @@ func main() {
 	})
 
 	err = g.Wait()
+}
+
+func parseConfig() bootstrap.Config {
+	var cfg bootstrap.Config
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	flagSet := pflag.NewFlagSet(serviceName, pflag.ContinueOnError)
+	if err := gpflag.ParseTo(&cfg, flagSet, sflags.FlagDivider("."), sflags.FlagTag("mapstructure")); err != nil {
+		log.Fatal(err)
+	}
+	if err := viper.BindPFlags(flagSet); err != nil {
+		log.Fatal(err)
+	}
+	viper.SetConfigName(serviceName)
+	viper.AddConfigPath(".")
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Printf("Using config file: %s \n", viper.ConfigFileUsed())
+	}
+	if err := viper.Unmarshal(&cfg); err != nil {
+		log.Fatal(err)
+	}
+	cfg.ServiceName = serviceName
+	return cfg
 }

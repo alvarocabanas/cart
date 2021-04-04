@@ -4,7 +4,7 @@ ENV CGO_ENABLED=0
 ENV GOBIN=/go/bin
 
 WORKDIR /go/src/cart
-COPY ../../../.. /go/src/cart
+COPY . /go/src/cart
 RUN cd /go/src/cart && go install -a -ldflags '-w' cmd/server/main.go
 
 FROM alpine:latest

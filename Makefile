@@ -1,5 +1,6 @@
 up:
-	@docker-compose up -d
+	@docker-compose run --rm start_dependencies
+	@docker-compose up -d cart-server cart-consumer
 
 down:
 	@docker-compose down

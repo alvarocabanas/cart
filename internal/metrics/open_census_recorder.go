@@ -21,8 +21,8 @@ type OpenCensusRecorder struct {
 }
 
 func NewOpenCensusRecorder() (OpenCensusRecorder, error) {
-	addItemLatencyS := stats.Float64(AddItemLatencyMeasureName, "The latency in seconds for the complete validation process", stats.UnitSeconds)
-	addItemEventHandled := stats.Float64(AddItemLatencyMeasureName, "The latency in seconds for the complete validation process", stats.UnitDimensionless)
+	addItemLatencyS := stats.Float64(AddItemLatencyMeasureName, "The latency in seconds for adding an intem", stats.UnitSeconds)
+	addItemEventHandled := stats.Float64(AddItemEventHandled, "The count of items_added handled", stats.UnitDimensionless)
 
 	views := []*view.View{
 		{
