@@ -1,19 +1,23 @@
-REST API Shopping Cart in GO with Tracing and Metrics
+REST API Shopping Cart in GO and Kafka Consumer with Distributed Tracing and Metrics
 ---
 
 ### Project Features
+* There are to microservices, 
+  - cart_server : REST Api that adds items to the cart and emits one event in Kafka
+  - cart_consumer : Kafka consumer listening to those events
+  
 * This project is an implementation of a Cart for an e-commerce and has 2 endpoints:
     - One to add items
     - One to retrieve the cart status
 * The project has been implemented with DDD and Hexagonal Arquitecture, isolating domain, application and infrastructure
-* In the root of internal the package cart has domain entities and Value objects of the aggregate 
-* There are two application services, in the package creator and getter
 * In storage there is an inMemoryRepository for the two entities that could be easily modified to a Real DB
-* In the io/rest package there is the http server and the handler 
-* The only two libraries used that are not from the standard library are:
+* The libraries used that are not from the standard library are:
     - Gorilla Mux
     - Wire as the dependency injector
-* The application is Dockerized and can be launched from a makefile
+    - OpenCensus
+    - Viper
+    - Sarama
+* The application is Dockerized
 
 * The Server is launched in the port :8888
 * Metrics and Traces with OpenCensus
