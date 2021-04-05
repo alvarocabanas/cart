@@ -5,6 +5,10 @@ import (
 	"errors"
 	"log"
 
+	"go.opencensus.io/trace"
+
+	"go.opencensus.io/trace/propagation"
+
 	"github.com/Shopify/sarama"
 )
 
@@ -88,14 +92,27 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 		case <-session.Context().Done():
 			return nil
 		default:
-			err := c.handleFunc(session.Context(), message.Value)
+			ctx, span := c.getTraceSpan(session.Context(), getTraceCtxFromHeader(message))
+
+			err := c.handleFunc(ctx, message.Value)
 			log.Print(err)
 
 			session.MarkMessage(message, "")
+			span.End()
 		}
 	}
 
 	return nil
+}
+
+func (c *consumer) getTraceSpan(ctx context.Context, spanFromHeader []byte) (context.Context, *trace.Span) {
+	sc, ok := propagation.FromBinary(spanFromHeader)
+	if ok {
+		ctx, span := trace.StartSpanWithRemoteParent(ctx, "consume_add_item_event", sc)
+		return ctx, span
+	}
+
+	return trace.StartSpan(ctx, "consume_add_item_event")
 }
 
 func (c *consumer) Setup(sarama.ConsumerGroupSession) error {
@@ -104,4 +121,13 @@ func (c *consumer) Setup(sarama.ConsumerGroupSession) error {
 
 func (c *consumer) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
+}
+
+func getTraceCtxFromHeader(message *sarama.ConsumerMessage) []byte {
+	for _, h := range message.Headers {
+		if string(h.Key) == "traceSpan" {
+			return h.Value
+		}
+	}
+	return []byte{}
 }

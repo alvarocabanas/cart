@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
+	"go.opencensus.io/trace"
+	"go.opencensus.io/trace/propagation"
+
 	"github.com/Shopify/sarama"
 	cart "github.com/alvarocabanas/cart/internal"
 )
@@ -34,16 +37,24 @@ func NewKafkaProducer(kafkaBrokers KafkaBrokers) (*KafkaEventDispatcher, error) 
 }
 
 func (p *KafkaEventDispatcher) Dispatch(ctx context.Context, topic, key string, event cart.Event) error {
+	_, span := trace.StartSpan(ctx, "dispatch_add_item_event")
+	defer span.End()
+
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
 	producerMessage := &sarama.ProducerMessage{
-		Topic:   topic,
-		Value:   sarama.ByteEncoder(bytes),
-		Key:     sarama.ByteEncoder(key),
-		Headers: []sarama.RecordHeader{},
+		Topic: topic,
+		Value: sarama.ByteEncoder(bytes),
+		Key:   sarama.ByteEncoder(key),
+		Headers: []sarama.RecordHeader{
+			{
+				Key:   []byte("traceSpan"),
+				Value: propagation.Binary(span.SpanContext()),
+			},
+		},
 	}
 	_, _, err = p.producer.SendMessage(producerMessage)
 

@@ -2,8 +2,9 @@ package async
 
 import (
 	"context"
-	"fmt"
 	"time"
+
+	"go.opencensus.io/trace"
 
 	"github.com/alvarocabanas/cart/internal/metrics"
 )
@@ -19,7 +20,9 @@ func NewMessageHandler(metricsRecorder metrics.Recorder) MessageHandler {
 }
 
 func (m MessageHandler) Handle(ctx context.Context, message []byte) error {
-	fmt.Println("message_handled")
+	_, span := trace.StartSpan(ctx, "handle_add_item_event")
+	defer span.End()
+
 	m.metricsRecorder.Record(time.Now().Unix(), metrics.AddItemEventHandled)
 	return nil
 }
