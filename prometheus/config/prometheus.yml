@@ -10,7 +10,11 @@ scrape_configs:
     # scheme defaults to 'http'.
     static_configs:
       - targets: ['prom:9090']
-  - job_name: "cart"
+  - job_name: "cart-server"
     scrape_interval: "5s"
     static_configs:
-      - targets: ['cart:8888']
+      - targets: ['cart-server:8888']
+  - job_name: "cart-consumer"
+    scrape_interval: "5s"
+    static_configs:
+      - targets: ['cart-consumer:8889']

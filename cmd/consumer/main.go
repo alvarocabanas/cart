@@ -61,7 +61,7 @@ func main() {
 	g.Go(func() error {
 		fmt.Printf("Launching Consumer")
 		err := consumer.Start(gctx)
-		fmt.Println("Consumer shutdown")
+		fmt.Println(err)
 		return err
 	})
 

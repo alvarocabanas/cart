@@ -57,6 +57,6 @@ func (c CartCreator) AddItem(ctx context.Context, dto AddItemDTO) error {
 			return err
 		}
 	}
-	cart.Events().Clear()
+	cart.ClearEvents()
 	return nil
 }

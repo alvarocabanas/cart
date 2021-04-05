@@ -6,7 +6,7 @@ import "context"
 // and the UUID of the cart should be passed to the other calls
 type CartRepository interface {
 	UpdateLine(ctx context.Context, line *Line) error
-	Get(ctx context.Context) Cart
+	Get(ctx context.Context) *Cart
 }
 
 // This application only has Get Items but in future iterations there would also be a Save method to add new ones

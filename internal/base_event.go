@@ -15,10 +15,10 @@ type Event interface {
 
 type EventList []Event
 
-func (e EventList) Record(event Event) {
-	e = append(e, event)
+func (e *EventList) Record(event Event) {
+	*e = append(*e, event)
 }
 
-func (e EventList) Clear() {
-	e = []Event{}
+func (e *EventList) Clear() {
+	*e = []Event{}
 }

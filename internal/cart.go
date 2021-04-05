@@ -23,15 +23,15 @@ type Cart struct {
 // New Creates a new Cart with a map of Lines
 // Each Line has the item type and the quantity of items on that Line
 // Discounts is a variadic functional parameter to apply discounts to a Cart price calculation
-func New(discounts ...Discount) Cart {
-	return Cart{
+func New(discounts ...Discount) *Cart {
+	return &Cart{
 		lines:     make(map[string]*Line),
 		discounts: discounts,
 	}
 }
 
 // Add Item adds items to a New cart Line, RemoveItem is not implemented
-func (c Cart) AddItem(ctx context.Context, item Item, quantity int) error {
+func (c *Cart) AddItem(ctx context.Context, item Item, quantity int) error {
 	_, span := trace.StartSpan(ctx, "cart_add_item")
 	defer span.End()
 
@@ -58,13 +58,17 @@ func (c Cart) AddItem(ctx context.Context, item Item, quantity int) error {
 }
 
 // Lines returns all the Lines in the cart
-func (c Cart) Lines() map[string]*Line {
+func (c *Cart) Lines() map[string]*Line {
 	return c.lines
 }
 
 // Events returns all events to be dispatched
-func (c Cart) Events() EventList {
+func (c *Cart) Events() EventList {
 	return c.events
+}
+
+func (c *Cart) ClearEvents() {
+	c.events.Clear()
 }
 
 // CalculateTotalPrice calculates the total of the cart, applying discounts to the lines if applicable

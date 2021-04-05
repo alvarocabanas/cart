@@ -10,7 +10,7 @@ import (
 
 // In this repository there should be a map of Carts, but to simplify it for this example, I only add one cart
 type InMemoryCartRepository struct {
-	cart cart.Cart
+	cart *cart.Cart
 }
 
 func NewInMemoryCartRepository() InMemoryCartRepository {
@@ -27,6 +27,6 @@ func (r InMemoryCartRepository) UpdateLine(ctx context.Context, line *cart.Line)
 	return nil
 }
 
-func (r InMemoryCartRepository) Get(_ context.Context) cart.Cart {
+func (r InMemoryCartRepository) Get(_ context.Context) *cart.Cart {
 	return r.cart
 }

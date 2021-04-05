@@ -32,12 +32,6 @@ func NewOpenCensusRecorder() (OpenCensusRecorder, error) {
 			Aggregation: view.Distribution(0, 10, 50, 100, 200, 400, 800, 1000, 1400, 2000, 5000, 10000, 15000),
 		},
 		{
-			Name:        "cart/counts",
-			Description: "Counts of items added",
-			Measure:     addItemLatencyS,
-			Aggregation: view.Count(),
-		},
-		{
 			Name:        "cart_consumer/counts",
 			Description: "Counts of items-added events handled",
 			Measure:     addItemEventHandled,
