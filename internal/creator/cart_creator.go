@@ -36,9 +36,13 @@ func (c CartCreator) AddItem(ctx context.Context, dto AddItemDTO) error {
 	stxt, span := trace.StartSpan(ctx, "cart_creator_add_item")
 	defer span.End()
 
-	var a bool
+	var (
+		a bool
+		b = "rr"
+	)
 	if a == true {
 		fmt.Print("entered")
+		fmt.Print(b)
 	}
 
 	item, err := c.itemRepository.Get(stxt, dto.ItemID)
