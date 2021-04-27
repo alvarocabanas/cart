@@ -2,7 +2,6 @@ package creator
 
 import (
 	"context"
-	"math/rand"
 
 	"go.opencensus.io/trace"
 
@@ -35,10 +34,6 @@ func NewCartCreator(
 func (c CartCreator) AddItem(ctx context.Context, dto AddItemDTO) error {
 	stxt, span := trace.StartSpan(ctx, "cart_creator_add_item")
 	defer span.End()
-
-	// ruleid: math-random-used
-	bad, _ := rand.Read([]byte{3})
-	println(bad)
 
 	item, err := c.itemRepository.Get(stxt, dto.ItemID)
 	if err != nil {
