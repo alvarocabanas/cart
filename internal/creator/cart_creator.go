@@ -37,7 +37,7 @@ func (c CartCreator) AddItem(ctx context.Context, dto AddItemDTO) error {
 	defer span.End()
 
 	// ruleid: math-random-used
-	bad, _ := rand.Read(nil)
+	bad, _ := rand.Read([]byte{3})
 	println(bad)
 
 	item, err := c.itemRepository.Get(stxt, dto.ItemID)
