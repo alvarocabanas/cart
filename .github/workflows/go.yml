@@ -11,11 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     name: Check
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Semgrep
         id: semgrep
         uses: returntocorp/semgrep-action@v1
         with:
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          publishDeployment: 689
           config: p/r2c
 
   build:
