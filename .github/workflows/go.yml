@@ -16,7 +16,7 @@ jobs:
         id: semgrep
         uses: returntocorp/semgrep-action@v1
         with:
-          config: semgrep.yml
+          config: ./semgrep.yml
 
   build:
     runs-on: ubuntu-latest
