@@ -9,7 +9,7 @@ type CartRepository interface {
 	Get(ctx context.Context) *Cart
 }
 
-// This application only has Get Items but in future iterations there would also be a Save method to add new ones
+// This application only has Get Items but in future iterations there would also be a Save method that adds new ones
 type ItemRepository interface {
 	Get(ctx context.Context, itemID string) (Item, error)
 }
