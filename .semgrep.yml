@@ -1,6 +1,676 @@
 rules:
-  -
-    id: go.lang.security.audit.crypto.math_random.math-random-used
+  - id: wrong-lock-unlock
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $M.Lock()
+              defer $M.RUnlock()
+          - pattern: |
+              $M.RLock()
+              defer $M.Unlock()
+          - pattern: |
+              $M.Lock()
+              defer $M.Lock()
+          - pattern: |
+              $M.RLock()
+              defer $M.RLock()
+    message: "Wrong lock/unlock pair?"
+    languages: [go]
+    severity: ERROR
+  - id: use-net-errclosed
+    patterns:
+      - pattern: strings.Contains($ERR.Error(), $X)
+      - metavariable-regex:
+          metavariable: $X
+          regex: '".*closed network connection.*"'
+    message: "Use errors.Is($ERR, net.ErrClosed) instead"
+    languages: [go]
+    severity: ERROR
+  - id: bad-exponentiation
+    patterns:
+      - pattern-either:
+          - pattern: 10 ^ $X
+          - pattern: 2 ^ $X
+    message: "Caret (^) is not exponentiation"
+    languages: [go]
+    severity: ERROR
+  - id: return-nil
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if err == nil {
+                      return err
+              }
+          - pattern: |
+              if err == nil {
+                      return ..., err
+              }
+    message: "return nil err instead of nil value"
+    languages: [go]
+    severity: ERROR
+  - id: odd-bits-leadingzeros
+    patterns:
+      - pattern-either:
+          - pattern: 64 - bits.LeadingZeros64($X)
+          - pattern: 32 - bits.LeadingZeros32($X)
+          - pattern: 16 - bits.LeadingZeros16($X)
+          - pattern: 8 - bits.LeadingZeros8($X)
+    message: "Odd bits.LeadingZeros() expression should perhaps be bits.Len()"
+    languages: [go]
+    severity: ERROR
+  - id: os-error-handling-functions
+    patterns:
+      - pattern-either:
+          - pattern: os.IsExist(...)
+          - pattern: os.IsNotExist(...)
+          - pattern: os.IsPermission(...)
+          - pattern: os.IsTimeout(...)
+    message: "New code should use errors.Is with the appropriate error type"
+    languages: [go]
+    severity: ERROR
+  - id: use-math-bits
+    patterns:
+      - pattern-either:
+          - pattern: $X >> $N | $X << (8 - $N)
+          - pattern: $X << $N | $X >> (8 - $N)
+          - pattern: $X >> (8 - $N) | $X << $N
+          - pattern: $X << (8 - $N) | $X >> $N
+          - pattern: $X >> $N | $X << (16 - $N)
+          - pattern: $X << $N | $X >> (16 - $N)
+          - pattern: $X >> (16 - $N) | $X << $N
+          - pattern: $X << (16 - $N) | $X >> $N
+          - pattern: $X >> $N | $X << (32 - $N)
+          - pattern: $X << $N | $X >> (32 - $N)
+          - pattern: $X >> (32 - $N) | $X << $N
+          - pattern: $X << (32 - $N) | $X >> $N
+          - pattern: $X >> $N | $X << (64 - $N)
+          - pattern: $X << $N | $X >> (64 - $N)
+          - pattern: $X >> (64 - $N) | $X << $N
+          - pattern: $X << (64 - $N) | $X >> $N
+    message: "Try using math/bits instead"
+    languages: [go]
+    severity: ERROR
+  - id: sprintf-mail-address
+    pattern-either:
+      - pattern: fmt.Sprintf(`"%s" <%s>`, $NAME, $EMAIL)
+      - pattern: fmt.Sprintf(`"%s"<%s>`, $NAME, $EMAIL)
+      - pattern: fmt.Sprintf("\"%s\"<%s>", $NAME, $EMAIL)
+      - pattern: fmt.Sprintf("\"%s\" <%s>", $NAME, $EMAIL)
+      - pattern: fmt.Sprintf("%s<%s>", $NAME, $EMAIL)
+    message: "use net/mail Address.String() instead of fmt.Sprintf()"
+    fix: "(&mail.Address{Name:$NAME, Address:$EMAIL}).String()"
+    languages: [go]
+    severity: ERROR
+  - id: err-nil-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if err != nil {
+                      return err
+              }
+              return nil
+          - pattern: |
+              if err != nil {
+                      return $X, err
+              }
+              return $X, nil
+    message: "superfluous nil err check before return"
+    languages: [go]
+    severity: ERROR
+  - id: odd-sequence-ifs
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if $X { return ... }
+              if $X { ... }
+          - pattern: |
+              if ! $X { return ... }
+              if $X { ... }
+          - pattern: |
+              if $X { return ... }
+              if ! $X { ... }
+          - pattern: |
+              if $X == $Y { return ... }
+              if $X != $Y { ... }
+          - pattern: |
+              if $X != $Y { return ... }
+              if $X == $Y { ... }
+          - pattern: |
+              if $X { return  ... }
+              for $X { ... }
+          - pattern: |
+              if $X {
+                      if $X { ... }
+                      ...
+              }
+          - pattern: |
+              if $X {
+                      if ! $X { ... }
+                      ...
+              }
+          - pattern: |
+              if ! $X {
+                      if $X { ... }
+                    ...
+              }
+          - pattern: |
+              if $X == $Y {
+                      if $X != $Y { ... }
+                      ...
+              }
+          - pattern: |
+              if $X != $Y {
+                      if $X == $Y { ... }
+                      ...
+              }
+          - pattern: |
+              if $X {
+                      for ! $X { ... }
+                      ...
+              }
+          - pattern: |
+              if ! $X {
+                      for $X { ... }
+                    ...
+              }
+          - pattern: |
+              if $X == $Y {
+                      for $X != $Y { ... }
+                      ...
+              }
+          - pattern: |
+              if $X != $Y {
+                      for $X == $Y { ... }
+                      ...
+              }
+          - pattern: |
+              for $X {
+                      if $X { ... }
+                      ...
+              }
+          - pattern: |
+              for $X {
+                      if ! $X { ... }
+                      ...
+              }
+          - pattern: |
+              for ! $X {
+                      if $X { ... }
+                      ...
+              }
+          - pattern: |
+              for $X == $Y {
+                      if $X != $Y { ... }
+                      ...
+              }
+          - pattern: |
+              for $X != $Y {
+                      if $X == $Y { ... }
+                      ...
+              }
+    message: "Odd sequence of ifs"
+    languages: [go]
+    severity: ERROR
+  - id: bad-nil-guard
+    patterns:
+      - pattern-either:
+          - pattern: $X == nil && <... $X.$F ...>
+          - pattern: $X != nil || <... $X.$F ...>
+          - pattern: <... $X.$F ...> && $X != nil
+          - pattern: <... $X.$F ...> || $X == nil
+          - pattern: <... $X.$F ...> && $X == nil
+          - pattern: <... $X.$F ...> || $X != nil
+    message: "Bad nil guard"
+    languages: [go]
+    severity: ERROR
+  - id: odd-bitwise
+    patterns:
+      - pattern-either:
+          - pattern: $X | $X
+          - pattern: $X | ^$X
+          - pattern: ^$X | $X
+          - pattern: $X & $X
+          - pattern: $X & ^$X
+          - pattern: ^$X & $X
+          - pattern: $X &^ $X
+    message: "Odd bitwise expression"
+    languages: [go]
+    severity: ERROR
+  - id: use-writer-not-writestring
+    patterns:
+      - pattern: io.WriteString($W, string($VAR))
+    message: "use $W.Write($VAR) instead of io.WriteString when $VAR is []byte"
+    languages: [go]
+    severity: ERROR
+  - id: context-todo
+    patterns:
+      - pattern-either:
+          - pattern: |
+              context.TODO()
+    message: "Consider to use well-defined context"
+    languages: [go]
+    severity: WARNING
+  - id: hash-sum-without-write
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $HASH.New().Sum($SLICE)
+          - pattern: |
+              $H := $HASH.New()
+              ...
+              $H.Sum($SLICE)
+      - pattern-not: |
+          $H := $HASH.New()
+          ...
+          $H.Write(...)
+          ...
+          $H.Sum($SLICE)
+      - pattern-not: |
+          $H := $HASH.New()
+          ...
+          $FUNC(..., $H, ...)
+          ...
+          $H.Sum($SLICE)
+    message: "odd hash.Sum call flow"
+    languages: [go]
+    severity: ERROR
+  - id: io-readfull-n
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $N, $ERR = io.ReadFull($R, $SLICE)
+              if $ERR != nil || $N != len($SLICE) {
+                      ...
+              }
+          - pattern: |
+              $N, $ERR = io.ReadFull($R, $SLICE)
+              if $N != len($SLICE) || $ERR != nil {
+                      ...
+              }
+    message: "io.ReadFull() returns err == nil iff n == len(slice)"
+    languages: [go]
+    severity: ERROR
+  - id: use-hmac-equal
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $MAC = hmac.New(...)
+              ...
+              $H = $MAC.Sum(...)
+              ...
+              bytes.Equal($H, ...)
+          - pattern: |
+              $MAC = hmac.New(...)
+              ...
+              $H = $MAC.Sum(...)
+              ...
+              bytes.Equal(..., $H)
+    message: "Comparing a MAC with bytes.Equal()"
+    languages: [go]
+    severity: ERROR
+  - id: marshal-json-pointer-receiver
+    patterns:
+      - pattern-either:
+          - pattern: func ($T *$TYPE) MarshalJSON() ($DATA []byte, $ERR error)
+          - pattern: func ($T *$TYPE) MarshalJSON() ([]byte, error)
+    message: "MarshalJSON with a pointer receiver has surprising results: https://github.com/golang/go/issues/22967"
+    languages: [go]
+    severity: ERROR
+  - id: return-nil
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if $X == nil {
+                      return $X
+              }
+          - pattern: |
+              if $X != nil {
+                      return ...
+              }
+              return $X
+    message: "return nil instead of nil value"
+    languages: [go]
+    severity: ERROR
+  - id: hmac-needs-new
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $H := $HASH.New()
+              ...
+              $FUNC := func() hash.Hash { return $H }
+              ...
+              hmac.New($FUNC, ...)
+          - pattern: |
+              $H := $HASH.New()
+              ...
+              hmac.New(func() hash.Hash { return $H }, ...)
+          - pattern: |
+              hmac.New(func() hash.Hash { return ( $H : hash.Hash) }, ...)
+    message: "calling hmac.New with unchanging hash.New"
+    languages: [go]
+    severity: ERROR
+  - id: err-todo
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-inside: if err != nil { ... }
+              - pattern-regex: // ?(TODO|FIXME).*
+      - pattern-either:
+          - patterns:
+              - pattern-inside: |
+                  if ... ; err != nil {
+                          ...
+                  }
+              - pattern-regex: // ?(TODO|FIXME).*
+    message: "TODO in error handling code"
+    languages: [go]
+    severity: ERROR
+  - id: rows-not-closed
+    patterns:
+      - pattern: $Q.QueryxContext(...)
+      - pattern-not-inside: return $X.QueryxContext(...)
+      # direct close
+      - pattern-not-inside: |
+          $ROWS, $ERR = $Q.QueryxContext(...)
+          ...
+          $ROWS.Close()
+      # defer close
+      - pattern-not-inside: |
+          $ROWS, $ERR = $Q.QueryxContext(...)
+          ...
+          defer $ROWS.Close()
+      # passing rows to another function that is expected to close it
+      - pattern-not-inside: |
+          $ROWS, $ERR = $Q.QueryxContext(...)
+          ...
+          $FUNC($ROWS)
+      # close outside if
+      - pattern-not-inside: |
+          if ... {
+            ...
+            $ROWS, $ERR = $Q.QueryxContext(...)
+            ...
+          } else { ... }
+          $ROWS.Close()
+      - pattern-not-inside: |
+          if ... {
+            ...
+            $ROWS, $ERR = $Q.QueryxContext(...)
+            ...
+          } else { ... }
+          ...
+          defer $ROWS.Close()
+      # close outside else
+      - pattern-not-inside: |
+          if ... { ...  } else {
+            ...
+            $ROWS, $ERR = $Q.QueryxContext(...)
+            ...
+          }
+          ...
+          $ROWS.Close()
+      - pattern-not-inside: |
+          if ... { ...  } else {
+            ...
+            $ROWS, $ERR = $Q.QueryxContext(...)
+            ...
+          }
+          ...
+          defer $ROWS.Close()
+    message: "QueryxContext rows must be closed (or use ExecContext)"
+    languages: [go]
+    severity: ERROR
+  - id: bad-sort-slice-function
+    patterns:
+      - pattern-either:
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$I] < $SLICE[$I]
+              })
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$J] < $SLICE[$I]
+              })
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$I].$FIELD < $SLICE[$I].$FIELD
+              })
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$J].$FIELD < $SLICE[$J].$FIELD
+              })
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$I] > $SLICE[$I]
+              })
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$J] > $SLICE[$I]
+              })
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$I].$FIELD > $SLICE[$I].$FIELD
+              })
+          - pattern: |
+              sort.Slice($SLICE, func($I, $J int) bool {
+                  return $SLICE[$J].$FIELD > $SLICE[$J].$FIELD
+              })
+    message: "Maybe bad sort.Slice() less function"
+    languages: [go]
+    severity: ERROR
+  - id: odd-compound-expression
+    patterns:
+      - pattern-either:
+          - pattern: $X += $X + $Y
+          - pattern: $X += $X - $Y
+          - pattern: $X -= $X + $Y
+          - pattern: $X -= $X - $Y
+    message: "Odd compound += or -= expression"
+    languages: [go]
+    severity: ERROR
+  - id: use-strings-join-path
+    patterns:
+      - pattern-either:
+          - pattern: strings.Join(..., "/")
+          - pattern: strings.Join(..., "\\\")
+          - pattern: strings.Join(..., `\\`)
+    message: "did you want path.Join() or filepath.Join()?"
+    languages: [go]
+    severity: ERROR
+  - id: odd-comparison
+    patterns:
+      - pattern-either:
+          - pattern: $X - $Y == 0
+          - pattern: $X - $Y != 0
+          - pattern: $X - $Y < 0
+          - pattern: $X - $Y <= 0
+          - pattern: $X - $Y > 0
+          - pattern: $X - $Y >= 0
+          - pattern: $X ^ $Y == 0
+          - pattern: $X ^ $Y != 0
+    message: "Odd comparison"
+    languages: [go]
+    severity: ERROR
+  - id: parseint-downcast
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $X, ... = strconv.ParseInt(..., ..., 64)
+              ...
+              int32($X)
+          - pattern: |
+              $X, ... = strconv.ParseInt(..., ..., 64)
+              ...
+              uint32($X)
+          - pattern: |
+              $X, ... = strconv.ParseUint(..., ..., 64)
+              ...
+              int32($X)
+          - pattern: |
+              $X, ... = strconv.ParseUint(..., ..., 64)
+              ...
+              uint32($X)
+          - pattern: |
+              $X = strconv.Atoi(...)
+              ...
+              int32($X)
+          - pattern: |
+              $X = strconv.Atoi(...)
+              ...
+              uint32($X)
+    message: "64-bit integer parsed and downcast to u/int32"
+    languages: [go]
+    severity: ERROR
+  - id: anonymous-struct-args
+    patterns:
+      - pattern-either:
+          - pattern: func $FUNC(..., $NAME *struct { ... }, ...)
+          - pattern: func $FUNC(..., $NAME struct { ... }, ...)
+          - pattern: func ($T $TYPE) $FUNC(..., $NAME *struct { ... }, ...)
+          - pattern: func ($T $TYPE) $FUNC(..., $NAME struct { ... }, ...)
+    message: "Odd use of anonymous structs for function arguments"
+    languages: [go]
+    severity: ERROR
+  - id: sprintf-host-port
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: fmt.Sprintf("%s:%s", $NET, $XX)
+              - pattern: fmt.Sprintf("%s:%d", $NET, $XX)
+              - pattern: fmt.Sprintf("%s:%s", $XX, $NET)
+              - pattern: fmt.Sprintf("%s:%d", $XX, $NET)
+              - pattern: $NET = fmt.Sprintf("%s:%d", ..., ...)
+              - pattern: $NET = fmt.Sprintf("%s:%s", ..., ...)
+          - metavariable-regex:
+              metavariable: '$NET'
+              regex: '(?i).*(port|addr|host|listen|bind|ip)'
+      - patterns:
+          - pattern: fmt.Sprintf($XX, $NET)
+          - metavariable-regex:
+              metavariable: '$XX'
+              regex: '"%s:[0-9]+"'
+          - metavariable-regex:
+              metavariable: '$NET'
+              regex: '(?i).*(port|addr|host|listen|bind|ip)'
+    message: |
+      use net.JoinHostPort instead of fmt.Sprintf($XX, $NET)
+    languages: [go]
+    severity: ERROR
+  - id: newrelic-start-without-end
+    patterns:
+      - pattern-not-inside: |
+          $TXN := $NR.StartTransaction($N)
+          ...
+          defer $TXN.End()
+      - pattern-not-inside: |
+          $TXN := $NR.StartTransaction($N)
+          ...
+          $TXN.End()
+      - pattern-either:
+          - pattern: $TXN := $NR.StartTransaction($N)
+    message: "missing new relic end transaction"
+    languages: [go]
+    severity: ERROR
+  - id: use-err-error
+    patterns:
+      - pattern-not: |
+          if err != nil {
+                  ..., err = ...
+                  <... fmt.Sprint(err) ...>
+          }
+      - pattern-not: |
+          if err != nil {
+                  err = ...
+                  <... fmt.Sprint(err) ...>
+          }
+      - pattern-either:
+          - pattern: |
+              if err != nil {
+                      ...
+                      <... fmt.Sprint(err) ...>
+              }
+          - pattern: |
+              if err == nil {
+                      ...
+                      return ...
+              }
+              ...
+              <...  fmt.Sprint(err) ...>
+          - pattern: |
+              if err != nil {
+                      ...
+                      <... fmt.Sprintf("%s", err) ...>
+              }
+          - pattern: |
+              if err == nil {
+                      ...
+                      return ...
+              }
+              ...
+              <...  fmt.Sprintf("%s", err) ...>
+          - pattern: |
+              if err != nil {
+                      ...
+                      <... fmt.Sprintf("%v", err) ...>
+              }
+          - pattern: |
+              if err == nil {
+                      ...
+                      return ...
+              }
+              ...
+              <...  fmt.Sprintf("%v", err) ...>
+    message: "Use err.Error() instead"
+    languages: [go]
+    severity: ERROR
+  - id: maybe-wrong-err
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if $F.Err() != nil {
+                      return ..., <... err ...>
+              }
+          - pattern: |
+              if $F.Err() != nil {
+                      return <... err ...>
+              }
+    message: "maybe returning wrong error"
+    languages: [go]
+    severity: ERROR
+  - id: json-encoder-needs-type
+    patterns:
+      - pattern: |
+          $ENC := json.NewEncoder(($W: http.ResponseWriter))
+          ...
+          $ENC.Encode(...)
+      - pattern-not: |
+          $ENC := json.NewEncoder(($W: http.ResponseWriter))
+          ...
+          $W.Header().Set("=~/Content-Type/i", "=~/application/json/")
+          ...
+          $ENC.Encode(...)
+      - pattern-not-inside: |
+          $W.Header().Set("=~/Content-Type/i", "=~/application/json/")
+          ...
+          $ENC := json.NewEncoder($W)
+          ...
+          $ENC.Encode(...)
+      - pattern-not: |
+          $ENC := json.NewEncoder(($W: http.ResponseWriter))
+          ...
+          $W.Header().Add("=~/Content-Type/i", "=~/application/json/")
+          ...
+          $ENC.Encode(...)
+      - pattern-not-inside: |
+          $W.Header().Add("=~/Content-Type/i", "=~/application/json/")
+          ...
+          $ENC := json.NewEncoder($W)
+          ...
+          $ENC.Encode(...)
+    message: "calling json.Encode() on an http.ResponseWriter will set Content-Type text/plain"
+    languages: [go]
+    severity: ERROR
+  - id: go.lang.security.audit.crypto.math_random.math-random-used
     languages:
       - go
     message: "Do not use `math/rand`. Use `crypto/rand` instead."
@@ -17,37 +687,25 @@ rules:
         slug: cart
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.crypto.math_random.math-random-used"
     pattern-either:
-      -
-        patterns:
-          -
-            pattern-inside: |
+      - patterns:
+          - pattern-inside: |
               import mrand "math/rand"
               ...
-          -
-            pattern-either:
-              -
-                pattern: mrand.Int()
-              -
-                pattern: mrand.Read(...)
-      -
-        patterns:
-          -
-            pattern-inside: |
+          - pattern-either:
+              - pattern: mrand.Int()
+              - pattern: mrand.Read(...)
+      - patterns:
+          - pattern-inside: |
               import "math/rand"
               ...
-          -
-            pattern-not-inside: |
+          - pattern-not-inside: |
               import "crypto/rand"
               ...
-          -
-            pattern-either:
-              -
-                pattern: rand.Int()
-              -
-                pattern: rand.Read(...)
+          - pattern-either:
+              - pattern: rand.Int()
+              - pattern: rand.Read(...)
     severity: WARNING
-  -
-    id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5
+  - id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5
     languages:
       - go
     message: |
@@ -66,13 +724,10 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5"
       source-rule-url: "https://github.com/securego/gosec#available-rules"
     pattern-either:
-      -
-        pattern: "md5.New()\n"
-      -
-        pattern: "md5.Sum(...)\n"
+      - pattern: "md5.New()\\n"
+      - pattern: "md5.Sum(...)\\n"
     severity: WARNING
-  -
-    id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-sha1
+  - id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-sha1
     languages:
       - go
     message: |
@@ -91,13 +746,10 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.crypto.use_of_weak_crypto.use-of-sha1"
       source-rule-url: "https://github.com/securego/gosec#available-rules"
     pattern-either:
-      -
-        pattern: "sha1.New()\n"
-      -
-        pattern: "sha1.Sum(...)\n"
+      - pattern: "sha1.New()\\n"
+      - pattern: "sha1.Sum(...)\\n"
     severity: WARNING
-  -
-    id: go.lang.security.audit.net.pprof.pprof-debug-exposure
+  - id: go.lang.security.audit.net.pprof.pprof-debug-exposure
     languages:
       - go
     message: |
@@ -120,24 +772,18 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.net.pprof.pprof-debug-exposure"
       source-rule-url: "https://github.com/securego/gosec#available-rules"
     patterns:
-      -
-        pattern-inside: |
+      - pattern-inside: |
           import _ "net/http/pprof"
           ...
-      -
-        pattern-inside: |
+      - pattern-inside: |
           func $ANY(...) {
             ...
           }
-      -
-        pattern-not: "http.ListenAndServe(\"=~/^localhost.*/\", ...)"
-      -
-        pattern-not: "http.ListenAndServe(\"=~/^127[.]0[.]0[.]1.*/\", ...)"
-      -
-        pattern: http.ListenAndServe(...)
+      - pattern-not: "http.ListenAndServe(\"=~/^localhost.*/\", ...)"
+      - pattern-not: "http.ListenAndServe(\"=~/^127[.]0[.]0[.]1.*/\", ...)"
+      - pattern: http.ListenAndServe(...)
     severity: WARNING
-  -
-    id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-rc4
+  - id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-rc4
     languages:
       - go
     message: |
@@ -156,8 +802,7 @@ rules:
       source-rule-url: "https://github.com/securego/gosec#available-rules"
     pattern: rc4.NewCipher(...)
     severity: WARNING
-  -
-    id: go.lang.security.audit.net.dynamic-httptrace-clienttrace.dynamic-httptrace-clienttrace
+  - id: go.lang.security.audit.net.dynamic-httptrace-clienttrace.dynamic-httptrace-clienttrace
     languages:
       - go
     message: |
@@ -178,16 +823,13 @@ rules:
         slug: cart
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.net.dynamic-httptrace-clienttrace.dynamic-httptrace-clienttrace"
     patterns:
-      -
-        pattern-not-inside: |
+      - pattern-not-inside: |
           ...
           &httptrace.ClientTrace { ... }
           ...
-      -
-        pattern: "httptrace.WithClientTrace($ANY, $TRACE)"
+      - pattern: "httptrace.WithClientTrace($ANY, $TRACE)"
     severity: WARNING
-  -
-    id: go.lang.security.audit.net.wip-xss-using-responsewriter-and-printf.wip-xss-using-responsewriter-and-printf
+  - id: go.lang.security.audit.net.wip-xss-using-responsewriter-and-printf.wip-xss-using-responsewriter-and-printf
     languages:
       - go
     message: |
@@ -205,21 +847,17 @@ rules:
         slug: cart
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.net.wip-xss-using-responsewriter-and-printf.wip-xss-using-responsewriter-and-printf"
     patterns:
-      -
-        pattern-inside: |
+      - pattern-inside: |
           func $FUNC(..., $W http.ResponseWriter, ...) {
               ...
           }
-      -
-        pattern-inside: |
+      - pattern-inside: |
           ...
           var $T = "..."
           ...
           $W.Write([]byte(fmt.$PRINTF($T, ...)), ...)
-      -
-        pattern-either:
-          -
-            pattern: |
+      - pattern-either:
+          - pattern: |
               $PARAMS = r.URL.Query()
               ...
               $DATA, $ERR := $PARAMS[...]
@@ -227,8 +865,7 @@ rules:
               $INTERM = $ANYTHING(..., $DATA, ...)
               ...
               $W.Write([]byte(fmt.$PRINTF(..., $INTERM, ...)))
-          -
-            pattern: |
+          - pattern: |
               $PARAMS = r.URL.Query()
               ...
               $DATA, $ERR := $PARAMS[...]
@@ -236,33 +873,29 @@ rules:
               $INTERM = $DATA[...]
               ...
               $W.Write([]byte(fmt.$PRINTF(..., $INTERM, ...)))
-          -
-            pattern: |
+          - pattern: |
               $DATA, $ERR := r.URL.Query()[...]
               ...
               $INTERM = $DATA[...]
               ...
               $W.Write([]byte(fmt.$PRINTF(..., $INTERM, ...)))
-          -
-            pattern: |
+          - pattern: |
               $DATA, $ERR := r.URL.Query()[...]
               ...
               $INTERM = $ANYTHING(..., $DATA, ...)
               ...
               $W.Write([]byte(fmt.$PRINTF(..., $INTERM, ...)))
-          -
-            pattern: |
+          - pattern: |
               $PARAMS = r.URL.Query()
               ...
               $DATA, $ERR := $PARAMS[...]
               ...
               $W.Write([]byte(fmt.$PRINTF(..., $DATA, ...)))
     severity: WARNING
-  -
+  - id: go.lang.security.audit.crypto.ssl.ssl-v3-is-insecure
     fix-regex:
       regex: VersionSSL30
       replacement: VersionTLS13
-    id: go.lang.security.audit.crypto.ssl.ssl-v3-is-insecure
     languages:
       - go
     message: |
@@ -284,14 +917,12 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.crypto.ssl.ssl-v3-is-insecure"
       source-rule-url: "https://github.com/securego/gosec/blob/master/rules/tls_config.go"
     patterns:
-      -
-        pattern: "tls.Config{..., MinVersion: $TLS.VersionSSL30, ...}"
+      - pattern: "tls.Config{..., MinVersion: $TLS.VersionSSL30, ...}"
     severity: ERROR
-  -
+  - id: go.lang.security.decompression_bomb.potential-dos-via-decompression-bomb
     fix-regex:
-      regex: "(.*)(Copy|CopyBuffer)\\((.*?),(.*?)(\\)|,.*\\))"
-      replacement: "\\1CopyN(\\3, \\4, 1024*1024*256)"
-    id: go.lang.security.decompression_bomb.potential-dos-via-decompression-bomb
+      regex: "(.*)(Copy|CopyBuffer)\\\\((.*?),(.*?)(\\\\)|,.*\\\\))"
+      replacement: "\\\\1CopyN(\\\\3, \\\\4, 1024*1024*256)"
     languages:
       - go
     message: "Detected a possible denial-of-service via a zip bomb attack. By limiting the max bytes read, you can mitigate this attack. `io.CopyN()` can specify a size. Refer to https://bomb.codes/ to learn more about this attack and other ways to mitigate it."
@@ -310,57 +941,42 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.decompression_bomb.potential-dos-via-decompression-bomb"
       source-rule-url: "https://github.com/securego/gosec"
     patterns:
-      -
-        pattern-either:
-          -
-            pattern: io.Copy(...)
-          -
-            pattern: io.CopyBuffer(...)
-      -
-        pattern-either:
-          -
-            pattern-inside: |
+      - pattern-either:
+          - pattern: io.Copy(...)
+          - pattern: io.CopyBuffer(...)
+      - pattern-either:
+          - pattern-inside: |
               gzip.NewReader(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               zlib.NewReader(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               zlib.NewReaderDict(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               bzip2.NewReader(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               flate.NewReader(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               flate.NewReaderDict(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               lzw.NewReader(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               tar.NewReader(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               zip.NewReader(...)
               ...
-          -
-            pattern-inside: |
+          - pattern-inside: |
               zip.OpenReader(...)
               ...
     severity: WARNING
-  -
-    id: go.lang.correctness.useless-eqeq.hardcoded-eq-true-or-false
+  - id: go.lang.correctness.useless-eqeq.hardcoded-eq-true-or-false
     languages:
       - go
     message: "useless if statement, always the same behavior"
@@ -373,15 +989,11 @@ rules:
         slug: cart
       semgrep.url: "https://semgrep.dev/r/go.lang.correctness.useless-eqeq.hardcoded-eq-true-or-false"
     patterns:
-      -
-        pattern-either:
-          -
-            pattern: "if (true) { ... }"
-          -
-            pattern: "if (false) { ... }"
+      - pattern-either:
+          - pattern: "if (true) { ... }"
+          - pattern: "if (false) { ... }"
     severity: ERROR
-  -
-    id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-DES
+  - id: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-DES
     languages:
       - go
     message: |
@@ -399,16 +1011,13 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.crypto.use_of_weak_crypto.use-of-DES"
       source-rule-url: "https://github.com/securego/gosec#available-rules"
     pattern-either:
-      -
-        pattern: "des.NewTripleDESCipher(...)\n"
-      -
-        pattern: "des.NewCipher(...)\n"
+      - pattern: "des.NewTripleDESCipher(...)\\n"
+      - pattern: "des.NewCipher(...)\\n"
     severity: WARNING
-  -
-    id: go.lang.maintainability.useless-ifelse.useless-if-body
+  - id: go.lang.maintainability.useless-ifelse.useless-if-body
     languages:
       - go
-    message: "Detected identical if-statement bodies. Is this intentional?\n"
+    message: "Detected identical if-statement bodies. Is this intentional?\\n"
     metadata:
       dev.semgrep.actions:
         - block
@@ -418,16 +1027,14 @@ rules:
         slug: cart
       semgrep.url: "https://semgrep.dev/r/go.lang.maintainability.useless-ifelse.useless-if-body"
     patterns:
-      -
-        pattern: |-
+      - pattern: |-
           if ($X) {
               $S
           } else {
               $S
           }
     severity: WARNING
-  -
-    id: go.lang.security.zip.path-traversal-inside-zip-extraction
+  - id: go.lang.security.zip.path-traversal-inside-zip-extraction
     languages:
       - go
     message: "File traversal when extracting zip archive"
@@ -442,8 +1049,7 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.zip.path-traversal-inside-zip-extraction"
       source_rule_url: "https://github.com/securego/gosec/issues/205"
     patterns:
-      -
-        pattern: |-
+      - pattern: |-
           reader, $ERR := zip.OpenReader($ARCHIVE)
           ...
           for _, $FILE := range reader.File {
@@ -452,8 +1058,7 @@ rules:
             ...
           }
     severity: WARNING
-  -
-    id: go.lang.security.audit.crypto.insecure_ssh.avoid-ssh-insecure-ignore-host-key
+  - id: go.lang.security.audit.crypto.insecure_ssh.avoid-ssh-insecure-ignore-host-key
     languages:
       - go
     message: |
@@ -478,11 +1083,10 @@ rules:
       source-rule-url: "https://github.com/securego/gosec"
     pattern: ssh.InsecureIgnoreHostKey()
     severity: WARNING
-  -
-    id: go.lang.maintainability.useless-ifelse.useless-if-conditional
+  - id: go.lang.maintainability.useless-ifelse.useless-if-conditional
     languages:
       - go
-    message: "Detected an if block that checks for the same condition on both branches (`$X`)\n"
+    message: "Detected an if block that checks for the same condition on both branches (`$X`)\\n"
     metadata:
       dev.semgrep.actions:
         - block
@@ -492,18 +1096,15 @@ rules:
         slug: cart
       semgrep.url: "https://semgrep.dev/r/go.lang.maintainability.useless-ifelse.useless-if-conditional"
     patterns:
-      -
-        pattern-either:
-          -
-            pattern: |-
+      - pattern-either:
+          - pattern: |-
               if ($X) {
                   ...
               } else if ($X) {
                   ...
               }
     severity: WARNING
-  -
-    id: go.lang.security.audit.crypto.bad_imports.insecure-module-used
+  - id: go.lang.security.audit.crypto.bad_imports.insecure-module-used
     languages:
       - go
     message: "Detected use of an insecure cryptographic hashing method. This method is known to be broken and easily compromised. Use SHA256 or SHA3 instead."
@@ -521,49 +1122,33 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.crypto.bad_imports.insecure-module-used"
       source-rule-url: "https://github.com/securego/gosec"
     pattern-either:
-      -
-        patterns:
-          -
-            pattern-inside: |
+      - patterns:
+          - pattern-inside: |
               import "crypto/md5"
               ...
-          -
-            pattern: "md5.$FUNC(...)\n"
-      -
-        patterns:
-          -
-            pattern-inside: |
+          - pattern: "md5.$FUNC(...)\\n"
+      - patterns:
+          - pattern-inside: |
               import "crypto/des"
               ...
-          -
-            pattern: "des.$FUNC(...)\n"
-      -
-        patterns:
-          -
-            pattern-inside: |
+          - pattern: "des.$FUNC(...)\\n"
+      - patterns:
+          - pattern-inside: |
               import "crypto/sha1"
               ...
-          -
-            pattern: "sha1.$FUNC(...)\n"
-      -
-        patterns:
-          -
-            pattern-inside: |
+          - pattern: "sha1.$FUNC(...)\\n"
+      - patterns:
+          - pattern-inside: |
               import "crypto/rc4"
               ...
-          -
-            pattern: "rc4.$FUNC(...)\n"
-      -
-        patterns:
-          -
-            pattern-inside: |
+          - pattern: "rc4.$FUNC(...)\\n"
+      - patterns:
+          - pattern-inside: |
               import "net/http/cgi"
               ...
-          -
-            pattern: "cgi.$FUNC(...)\n"
+          - pattern: "cgi.$FUNC(...)\\n"
     severity: WARNING
-  -
-    id: go.lang.security.audit.crypto.tls.tls-with-insecure-cipher
+  - id: go.lang.security.audit.crypto.tls.tls-with-insecure-cipher
     languages:
       - go
     message: |
@@ -585,28 +1170,16 @@ rules:
       semgrep.url: "https://semgrep.dev/r/go.lang.security.audit.crypto.tls.tls-with-insecure-cipher"
       source-rule-url: "https://github.com/securego/gosec/blob/master/rules/tls.go"
     pattern-either:
-      -
-        pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_RSA_WITH_RC4_128_SHA,...}}\n"
-      -
-        pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_RSA_WITH_AES_128_CBC_SHA256,...}}\n"
-      -
-        pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,...}}\n"
-      -
-        pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,...}}\n"
-      -
-        pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,...}}\n"
-      -
-        pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,...}}\n"
-      -
-        pattern: "tls.CipherSuite{..., TLS_RSA_WITH_RC4_128_SHA ,...}\n"
-      -
-        pattern: "tls.CipherSuite{..., TLS_RSA_WITH_AES_128_CBC_SHA256 ,...}\n"
-      -
-        pattern: "tls.CipherSuite{..., TLS_ECDHE_ECDSA_WITH_RC4_128_SHA ,...}\n"
-      -
-        pattern: "tls.CipherSuite{..., TLS_ECDHE_RSA_WITH_RC4_128_SHA ,...}\n"
-      -
-        pattern: "tls.CipherSuite{..., TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 ,...}\n"
-      -
-        pattern: "tls.CipherSuite{..., TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 ,...}"
+      - pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_RSA_WITH_RC4_128_SHA,...}}\\n"
+      - pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_RSA_WITH_AES_128_CBC_SHA256,...}}\\n"
+      - pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,...}}\\n"
+      - pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,...}}\\n"
+      - pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,...}}\\n"
+      - pattern: "tls.Config{..., CipherSuites: []$TYPE{..., tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,...}}\\n"
+      - pattern: "tls.CipherSuite{..., TLS_RSA_WITH_RC4_128_SHA ,...}\\n"
+      - pattern: "tls.CipherSuite{..., TLS_RSA_WITH_AES_128_CBC_SHA256 ,...}\\n"
+      - pattern: "tls.CipherSuite{..., TLS_ECDHE_ECDSA_WITH_RC4_128_SHA ,...}\\n"
+      - pattern: "tls.CipherSuite{..., TLS_ECDHE_RSA_WITH_RC4_128_SHA ,...}\\n"
+      - pattern: "tls.CipherSuite{..., TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 ,...}\\n"
+      - pattern: "tls.CipherSuite{..., TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 ,...}"
     severity: WARNING
