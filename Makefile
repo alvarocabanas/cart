@@ -12,7 +12,7 @@ build:
 	@docker-compose build
 
 validate:
-	@printf "Running golangci-lint & semgrep... "
+	@printf "Running golangci-lint & semgrep..... "
 	@go run  $(GOFLAGS) $(GOLANGCI_LINT) run --verbose
 	@if [ -f .semgrep.yml ]; then \
         docker run --rm -v "${PWD}:/src:ro" --workdir /src returntocorp/semgrep -c .semgrep.yml ; \
