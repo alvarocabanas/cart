@@ -11,3 +11,5 @@ build:
 test:
 	@echo ">>> Running tests..."
 	@go test -race -v ./... -count=1
+	
+.PHONY: up down build test
