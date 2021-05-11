@@ -1,0 +1,21 @@
+name: Prerelease pipeline
+
+on:
+  release:
+    types:
+      - prereleased
+    tags:
+      - 'v*'
+
+jobs:
+  static-analysis:
+    name: static analysis
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Semgrep
+        uses: returntocorp/semgrep-action@v1
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          only-new-issues: true
