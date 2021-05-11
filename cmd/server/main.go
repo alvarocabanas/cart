@@ -67,7 +67,7 @@ func main() {
 		return err
 	})
 
-	_ = g.Wait()
+	err = g.Wait()
 }
 
 func parseConfig() bootstrap.Config {
